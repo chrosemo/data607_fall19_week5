@@ -1,0 +1,134 @@
+---
+title: "Assignment 5 - Tidying and Transforming Data"
+author: "C. Rosemond 092919"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Loading libraries
+
+```{r load, eval=TRUE, warning=FALSE, message=FALSE}
+library(tidyr)
+library(dplyr)
+```
+
+<br>
+
+### Reading in the data
+
+After loading tidyr and dplyr, I read in the CSV file as a data frame called "delays".
+
+```{r read1, eval=TRUE}
+delays <- read.csv('https://raw.githubusercontent.com/chrosemo/data607_fall19_week5/master/assignment5.csv', header=TRUE, sep=',')
+delays
+```
+
+<br>
+
+### Manipulating the data
+
+Next, I removed the blank third row and inserted airline names into the empty cells in the first column.
+
+```{r manipulate1, eval=TRUE}
+delays <- delays[-3,]
+delays[2,1] <- 'ALASKA'
+delays[4,1] <- 'AM WEST'
+delays
+```
+
+<br>
+
+I then renamed the first ("airline") and second columns ("status") and reshaped the data frame from wide to long format using gather(). The columns containing delay count values were gathered in the "destination" column, and the delay count values themselves were gathered in the "delay_count" column.
+
+```{r manipulate2, eval=TRUE}
+delays <- delays %>% rename('Airline' = 'X', 'Status' = 'X.1')
+delays <- delays %>% gather(Destination, Flight_Count, -Airline, -Status)
+delays
+```
+
+<br>
+
+I then renamed the values in the "airline" and "destination" columns.
+
+```{r manipulate3, eval=TRUE}
+delays <- delays %>% mutate(Airline=recode(Airline,
+                                 'ALASKA' = 'Alaska Airlines',
+                                 'AM WEST' = 'America West Airlines'),
+                  Destination=recode(Destination,
+                                     'Los.Angeles' = 'Los Angeles',
+                                     'San.Diego' = 'San Diego',
+                                     'San.Francisco' = 'San Francisco')
+                  )
+```
+
+<br>
+
+### Analyzing the data
+
+I began my analysis by totaling the number of flights by airline, status, and destination. There were 11,000 flights total, and America West Airlines had nearly twice as many flights (7,225 flights, or approximately 65.7% of the total) as Alaska Airlines had (3,775 flights, or approximately 34.3% of the total). 
+
+```{r analyze1, eval=TRUE}
+delays %>% summarize(Total = sum(Flight_Count))
+delays %>% group_by(Airline) %>% summarize(Total = sum(Flight_Count)) %>% mutate('Relative Frequency' = Total / sum(Total))
+```
+
+<br>
+
+Regarding destination, Phoenix had 5,488 flights, or approximately 49.9% of all flights; Seattle had 1,054 flights, or approximately 21.9%; Los Angeles had 1,370 flights, or approximately 12.5%; San Francisco had 1,054 flights, or approximately 9.5%; and San Diego had 680 flights, or approximately 6.2%.
+
+```{r analyze2, eval=TRUE}
+delays %>% group_by(Destination) %>% summarize(Total = sum(Flight_Count)) %>% mutate('Relative Frequency' = Total / sum(Total))
+```
+
+<br>
+
+For Alaska Airlines, Seattle (n = 2,146) had approximately 56.8% of all flights, followed by San Francisco (n = 605) with approximately 16%, Los Angeles (n = 559) with approximately 14.8%, and Phoenix (n = 233) and San Diego (n = 232) with approximately 6.2% each.
+
+For America West Airlines, Phoenix (n = 5,255) had approximately 72.7% of all flights. Next were Los Angeles (n = 811) with approximately 11.2%, San Francisco (n = 449) and San Diego (n = 448) with approximately 6.2% each, and Seattle (n = 262) with approximately 3.6%.
+
+```{r analyze3, eval=TRUE}
+delays %>% group_by(Airline, Destination) %>% summarize(Total = sum(Flight_Count)) %>% mutate('Relative Frequency' = Total / sum(Total))
+```
+
+<br>
+
+Regarding arrival status, across all destinations, 1,288 flights were delayed, and 9,712 flights arrived on time. Roughly 12 in every 100 flights were delayed.
+
+```{r analyze4, eval=TRUE}
+delays %>% group_by(Status) %>% summarize(Total = sum(Flight_Count)) %>% mutate('Relative Frequency' = Total / sum(Total))
+```
+
+Across all destinations, Alaska Airlines had 501 flights delayed (approximately 13.3% of its flights) and 3,274 flights arriving on time (approximately 86.7% of its flights); the mean numbers of flights delayed and arriving on time per destination were 100.2 and 654.8 flights, respectively.
+
+For America West Airlines, 787 flights were delayed (approximately 10.9% of its flights), and 6,438 flights arrived on time (approximately 89.1% of its flights); the mean numbers of flights delayed and arriving on time per destination were 157.4 and 1,287.6 flights, respectively.
+
+```{r analyze5, eval=TRUE}
+delays %>% group_by(Airline, Status) %>% summarize(Total = sum(Flight_Count), Mean = mean(Flight_Count)) %>%  mutate('Relative Frequency' = Total / sum(Total))
+```
+
+<br>
+
+Considering delayed flights, flights out of Phoenix (n = 427) represented approximately 33.2% of all flights delayed. Next were Seattle (n = 366) at approximately 28.4%; San Francisco (n = 231) at approximately 17.9%; Los Angeles (n = 179) at approximately 13.9%; and San Diego (n = 85) at approximately 6.6%.
+
+For flights arriving on time, Phoenix had 5,061 flights representing approximately 52.1% of all flights arriving on time. The next highest, in order, were Seattle (n = 2,042) at approximately 21%; Los Angeles (n = 1,191) at approximately 12.3%; San Francisco (n = 823) at approximately 8.5%; and San Diego (n = 595) at approximately 6.1%.
+
+```{r analyze6, eval=TRUE}
+delays %>% group_by(Status, Destination) %>% summarize(Total = sum(Flight_Count)) %>% mutate('Relative Frequency' = Total / sum(Total))
+```
+
+<br>
+
+Considering arrival status for each destination, approximately 21.9% (n = 231) of flights out of San Francisco were delayed. In Seattle, approximately 15.2% (n = 366) of flights were delayed. Approximately 13.1% (n = 179) of flights out of Los Angeles were delayed. Approximately 12.5% (n = 85) of flights out of San Diego were delayed. And only approximately 7.8% (n = 427) of flights out of Phoenix were delayed.
+
+```{r analyze7, eval=TRUE}
+delays %>% group_by(Destination, Status) %>% summarize(Total = sum(Flight_Count)) %>% mutate('Relative Frequency' = Total / sum(Total))
+```
+
+<br>
+
+### Making brief conclusions
+
+Numbers and proportions of flights delayed varied by airline and destination. Overall, the airline hubs (Seattle for Alaska Airlines and Phoenix for America West Airlines) had the most flights as well as the most delayed flights. However, San Francisco had the highest proportion of flights delayed, at approximately 21.9%. That proportion compared with 11.7% of flights delayed across all airports. Phoenix, despite having the most total arrivals (n = 5,488), had the lowest proportion of flights delayed, with approximately 7.7%.
